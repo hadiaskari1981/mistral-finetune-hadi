@@ -46,7 +46,7 @@ class DataPreprocessor:
         #     },
         # )
 
-        self.traint = load_dataset(self.data_path, split='train')
+        self.train = load_dataset(self.data_path, split='train')
         self.eval = load_dataset(self.data_path, split='validation')
         self.test = load_dataset(self.data_path, split='test')
 
@@ -85,13 +85,13 @@ def main():
 
     # Add arguments based on your script's needs
     args = {
-        "data_path": "",
-        "tokenizer": 'mistralai/Mistral-7B-v0.1',
+        "data_path": "gem/viggo",
+        "tokenizer": 'mistralai/Mistral-7B-v0.3',
         "model_max_length": 512,
         "force_save": True
     }
 
-    data_preprocessor = DataPreprocessor(*args)
+    data_preprocessor = DataPreprocessor(args)
 
     data_preprocessor.load_and_prepare_and_save_data()
 
