@@ -33,6 +33,7 @@ def save_dataset(dataset, data_path, tag='train'):
 class DataPreprocessor:
     def __init__(self, args):
         self.data_path = args["data_path"]
+        print(self.data_path)
         self.model_max_length = args["model_max_length"]
         self.tokenizer = args["tokenizer"]
         self.force_save = args["force_save"]
