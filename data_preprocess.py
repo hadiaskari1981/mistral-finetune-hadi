@@ -6,6 +6,8 @@ import time
 from pathlib import Path
 from datasets import load_dataset
 from transformers import AutoTokenizer
+from huggingface_hub import login
+login(token="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", add_to_git_credential=True)
 
 
 def save_dataset(dataset, data_path, tag='train'):
@@ -35,7 +37,16 @@ class DataPreprocessor:
         self.data_path = args["data_path"]
         print(self.data_path)
         self.model_max_length = args["model_max_length"]
-        self.tokenizer = args["tokenizer"]
+        # self.tokenizer_model = args["tokenizer"]
+
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            args["tokenizer"],
+            model_max_length=self.model_max_length,
+            padding_side='left',
+            add_eos_token=True,
+            token="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"
+        )
+
         self.force_save = args["force_save"]
         # dataset = load_dataset(
         #     'csv',
@@ -46,11 +57,11 @@ class DataPreprocessor:
         #     },
         # )
 
-        self.train = load_dataset(self.data_path, split='train')
-        self.eval = load_dataset(self.data_path, split='validation')
-        self.test = load_dataset(self.data_path, split='test')
+        self.train = load_dataset(self.data_path, split='train', trust_remote_code=True)
+        self.eval = load_dataset(self.data_path, split='validation', trust_remote_code=True)
+        self.test = load_dataset(self.data_path, split='test', trust_remote_code=True)
 
-    def generate_and_tokenize_prompt(self, data_point, tokenizer):
+    def generate_and_tokenize_prompt(self, data_point):
         full_prompt = f"""Given a meaning representation generate a target sentence that utilizes the attributes and 
         attribute values given. The sentence should use all the information provided in the meaning representation. 
         ### Target sentence: {data_point["ref"]}
@@ -58,16 +69,11 @@ class DataPreprocessor:
         ### Meaning representation:
         {data_point["mr"]}
         """
-        return tokenizer(full_prompt, truncation=True, max_length=self.model_max_length, padding='max_length')
+        return self.tokenizer(full_prompt, truncation=True, max_length=self.model_max_length, padding='max_length')
 
     def load_and_prepare_and_save_data(self):
-        tokenizer = AutoTokenizer.from_pretrained(
-            self.tokenizer,
-            model_max_length=self.model_max_length,
-            padding_side='left',
-            add_eos_token=True,
-        )
-        tokenizer.pad_token = tokenizer.eos_token
+
+        self.tokenizer.pad_token = self.tokenizer.eos_token
 
         tokenized_train = self.train.map(self.generate_and_tokenize_prompt)
         tokenized_val = self.eval.map(self.generate_and_tokenize_prompt)
@@ -86,7 +92,7 @@ def main():
     # Add arguments based on your script's needs
     args = {
         "data_path": "gem/viggo",
-        "tokenizer": 'mistralai/Mistral-7B-v0.3',
+        "tokenizer": "mistralai/Mistral-7B-v0.3",
         "model_max_length": 512,
         "force_save": True
     }
