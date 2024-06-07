@@ -69,11 +69,11 @@ class DataPreprocessor:
 
         tokenized_train = self.train.map(self.generate_and_tokenize_prompt)
         tokenized_val = self.eval.map(self.generate_and_tokenize_prompt)
-
+        cwd = os.getcwd()
         if self.force_save:
-            save_dataset(tokenized_train, self.data_path, 'train')
-            save_dataset(tokenized_val,  self.data_path, 'val')
-            save_dataset(self.test, self.data_path, 'test')
+            save_dataset(tokenized_train, cwd, 'train')
+            save_dataset(tokenized_val,  cwd, 'val')
+            save_dataset(self.test, cwd, 'test')
         else:
             return tokenized_train, tokenized_val, self.test
 
