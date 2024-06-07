@@ -36,17 +36,18 @@ class DataPreprocessor:
         self.model_max_length = args["model_max_length"]
         self.tokenizer = args["tokenizer"]
         self.force_save = args["force_save"]
-        dataset = load_dataset(
-            'csv',
-            data_files={
-                'train': os.path.join(self.data_path, 'train.csv'),
-                'val': os.path.join(self.data_path, 'validation.csv'),
-                'test': os.path.join(self.data_path, 'test.csv'),
-            },
-        )
-        self.train = dataset['train']
-        self.eval = dataset['val']
-        self.test = dataset['test']
+        # dataset = load_dataset(
+        #     'csv',
+        #     data_files={
+        #         'train': os.path.join(self.data_path, 'train.csv'),
+        #         'val': os.path.join(self.data_path, 'validation.csv'),
+        #         'test': os.path.join(self.data_path, 'test.csv'),
+        #     },
+        # )
+
+        self.traint = load_dataset(self.data_path, split='train')
+        self.eval = load_dataset(self.data_path, split='validation')
+        self.test = load_dataset(self.data_path, split='test')
 
     def generate_and_tokenize_prompt(self, data_point, tokenizer):
         full_prompt = f"""Given a meaning representation generate a target sentence that utilizes the attributes and 
