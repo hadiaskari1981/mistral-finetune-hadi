@@ -62,12 +62,15 @@ class DataPreprocessor:
         self.test = load_dataset(self.data_path, split='test', trust_remote_code=True)
 
     def generate_and_tokenize_prompt(self, data_point):
-        full_prompt = f"""Given a meaning representation generate a target sentence that utilizes the attributes and 
-        attribute values given. The sentence should use all the information provided in the meaning representation. 
-        ### Target sentence: {data_point["ref"]}
+        full_prompt = f"""Given a target sentence construct the underlying meaning representation of the input sentence as a single function with attributes and attribute values.
+        This function should describe the target string accurately and the function must be one of the following ['inform', 'request', 'give_opinion', 'confirm', 'verify_attribute', 'suggest', 'request_explanation', 'recommend', 'request_attribute'].
+        The attributes must be one of the following: ['name', 'exp_release_date', 'release_year', 'developer', 'esrb', 'rating', 'genres', 'player_perspective', 'has_multiplayer', 'platforms', 'available_on_steam', 'has_linux_release', 'has_mac_release', 'specifier']
+
+        ### Target sentence:
+        {data_point["target"]}
 
         ### Meaning representation:
-        {data_point["mr"]}
+        {data_point["meaning_representation"]}
         """
         return self.tokenizer(full_prompt, truncation=True, max_length=self.model_max_length, padding='max_length')
 
