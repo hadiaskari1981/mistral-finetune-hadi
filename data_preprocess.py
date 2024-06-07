@@ -6,8 +6,6 @@ import time
 from pathlib import Path
 from datasets import load_dataset
 from transformers import AutoTokenizer
-from huggingface_hub import login
-login(token="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", add_to_git_credential=True)
 
 
 def save_dataset(dataset, data_path, tag='train'):
