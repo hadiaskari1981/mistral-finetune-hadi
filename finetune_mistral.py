@@ -188,7 +188,7 @@ def main():
     }
     # fmt: on
 
-    fine_tuner = FineTuner(*args)
+    fine_tuner = FineTuner(args)
     fine_tuner.train()
 
 
