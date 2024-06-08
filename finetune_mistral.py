@@ -1,5 +1,4 @@
 import json
-
 from torch import bfloat16
 import logging
 import os
@@ -8,7 +7,6 @@ import transformers
 from accelerate import Accelerator, FullyShardedDataParallelPlugin
 from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 from torch.distributed.fsdp.fully_sharded_data_parallel import FullOptimStateDictConfig, FullStateDictConfig
-
 logger = logging.getLogger(__name__)
 
 
@@ -175,11 +173,13 @@ def main():
 
     # Add arguments based on your script's needs
     # fmt: off
+
+    cwd = os.getcwd()
     args = {
-        "base_mistral_model": "mistralai/Mistral-7B-v0.1",
-        "train_data": "",
-        "val_data": "",
-        "output_dir": "finetuned_mistral",
+        "base_mistral_model": "mistralai/Mistral-7B-v0.3",
+        "train_data": f"{cwd}_encoded_train",
+        "val_data": f"{cwd}_encoded_test",
+        "output_dir": f"{cwd}_fine_tuned_model",
         "model_max_length": 512,
         "warmup_steps": 5,
         "max_steps": 10,

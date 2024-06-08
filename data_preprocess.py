@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 from datasets import load_dataset
 from transformers import AutoTokenizer
+import sentencepiece
 
 
 def save_dataset(dataset, data_path, tag='train'):
@@ -35,7 +36,6 @@ class DataPreprocessor:
         self.data_path = args["data_path"]
         print(self.data_path)
         self.model_max_length = args["model_max_length"]
-        # self.tokenizer_model = args["tokenizer"]
 
         self.tokenizer = AutoTokenizer.from_pretrained(
             args["tokenizer"],
@@ -46,14 +46,6 @@ class DataPreprocessor:
         )
 
         self.force_save = args["force_save"]
-        # dataset = load_dataset(
-        #     'csv',
-        #     data_files={
-        #         'train': os.path.join(self.data_path, 'train.csv'),
-        #         'val': os.path.join(self.data_path, 'validation.csv'),
-        #         'test': os.path.join(self.data_path, 'test.csv'),
-        #     },
-        # )
 
         self.train = load_dataset(self.data_path, split='train', trust_remote_code=True)
         self.eval = load_dataset(self.data_path, split='validation', trust_remote_code=True)
