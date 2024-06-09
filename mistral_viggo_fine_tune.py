@@ -5,11 +5,11 @@ from datasets import load_dataset
 import torch
 from transformers import AutoTokenizer, BitsAndBytesConfig, AutoModelForCausalLM
 from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model, PeftModel
-
+import logging
 from accelerate import FullyShardedDataParallelPlugin, Accelerator
 from torch.distributed.fsdp.fully_sharded_data_parallel import FullOptimStateDictConfig, FullStateDictConfig
 
-config = LoraConfig(
+CONFIG = LoraConfig(
     r=8,
     lora_alpha=16,
     target_modules=[
@@ -117,7 +117,7 @@ def print_trainable_parameters(model):
         all_param += param.numel()
         if param.requires_grad:
             trainable_params += param.numel()
-    print(
+    logging.info(
         f"trainable params: {trainable_params} || all params: {all_param} || trainable%: {100 * trainable_params / all_param}"
     )
 
@@ -144,17 +144,12 @@ def fine_tune(args):
     base_model.gradient_checkpointing_enable()
     base_model = prepare_model_for_kbit_training(base_model)
 
-    base_model = get_peft_model(base_model, config)
+    base_model = get_peft_model(base_model, CONFIG)
     print_trainable_parameters(base_model)
 
     # Apply the accelerator. You can comment this out to remove the accelerator.
     acc = accelerator()
     base_model = acc.prepare_model(base_model)
-
-    project = args.get("project_name")
-    cwd = os.getcwd()
-    output_dir = f"{cwd}/{project}"
-    os.makedirs(output_dir, exist_ok=True)
 
     tokenizer = data_tokenizer.tokenizer
 
@@ -163,7 +158,7 @@ def fine_tune(args):
         train_dataset=tokenized_train_dataset,
         eval_dataset=tokenized_val_dataset,
         args=transformers.TrainingArguments(
-            output_dir=output_dir,
+            output_dir=args.get("model_output_dir"),
             warmup_steps=5,
             per_device_train_batch_size=2,
             gradient_checkpointing=True,
@@ -173,13 +168,13 @@ def fine_tune(args):
             logging_steps=50,
             bf16=True,
             optim="paged_adamw_8bit",
-            logging_dir=f"{cwd}/logs",  # Directory for storing logs
+            logging_dir=args.get("logs_dir"),  # Directory for storing logs
             save_strategy="steps",  # Save the model checkpoint every logging step
             save_steps=10,  # Save checkpoints every 50 steps
             evaluation_strategy="steps",  # Evaluate the model every logging step
             eval_steps=10,  # Evaluate and save checkpoints every 50 steps
             do_eval=True,  # Perform evaluation at the end of training
-            run_name=f"{project}-{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
+            run_name=f"{args.get('project_name')}-{datetime.now().strftime('%Y-%m-%d-%H-%M')}"
         ),
         data_collator=transformers.DataCollatorForLanguageModeling(tokenizer, mlm=False),
     )
@@ -187,13 +182,16 @@ def fine_tune(args):
     return trainer
 
 
-def inference(args):
-    base_model = BaseModelLoader(args).model
-    base_model_name = args.get("base_model_name")
-    cache_dir = args.get("cache_dir")
-    output_dir = args.get("output_dir")
-    target_sentence = args.get("target_sentence")
-    checkpoint_version = args.get("checkpoint")
+def inference(inference_args):
+
+    base_model = BaseModelLoader(inference_args).model
+
+    base_model_name = inference_args.get("base_model_name")
+    cache_dir = inference_args.get("cache_dir")
+    output_dir = inference_args.get("model_output_dir")
+    target_sentence = inference_args.get("target_sentence")
+    checkpoint_version = inference_args.get("checkpoint")
+
     eval_tokenizer = AutoTokenizer.from_pretrained(
         base_model_name,
         add_bos_token=True,
@@ -220,10 +218,48 @@ def inference(args):
 
 
 if __name__ == '__main__':
-    train_args = {}
+
+    project = "mistral-viggo-finetune"
+
+    current_working_dir = os.getcwd()
+
+    saved_dir = f"{current_working_dir}/data"
+    os.makedirs(saved_dir, exist_ok=True)
+
+    cache_path = f'{saved_dir}/cache'
+    os.makedirs(cache_path, exist_ok=True)
+
+    model_output_path = f"{saved_dir}/{project}"
+    os.makedirs(model_output_path, exist_ok=True)
+
+    logs_path = f"{saved_dir}/logs"
+    os.makedirs(logs_path, exist_ok=True)
+
+    train_args = {
+        "base_model_name": "mistralai/Mistral-7B-v0.3",
+        "cache_dir": cache_path,
+        "is_inference": False,
+        "data_path": "gem/viggo",
+        "model_max_length": 512,
+        "model_output_dir": model_output_path,
+        "logs_dir": logs_path,
+        "project_name": project
+
+    }
     finetune_trainer = fine_tune(train_args)
 
-    inference_args = {}
+    inference_args = {
+        "base_model_name": "mistralai/Mistral-7B-v0.3",
+        "cache_dir": cache_path,
+        "is_inference": True,
+        "data_path": "gem/viggo",
+        "model_max_length": 512,
+        "project_name": project,
+        "model_output_path": model_output_path,
+        "checkpoint": "checkpoint-1000",
+        "target_sentence": "I remember you saying you found Little Big Adventure to be average. Are you not usually "
+                           "that into single-player games on PlayStation?"
+    }
     inference(inference_args)
 
 
