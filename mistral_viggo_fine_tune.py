@@ -5,6 +5,7 @@ from datasets import load_dataset
 import torch
 from transformers import AutoTokenizer, BitsAndBytesConfig, AutoModelForCausalLM
 from peft import prepare_model_for_kbit_training, LoraConfig, get_peft_model, PeftModel
+# peft parameters efficient fine-tuning
 import logging
 from accelerate import FullyShardedDataParallelPlugin, Accelerator
 from torch.distributed.fsdp.fully_sharded_data_parallel import FullOptimStateDictConfig, FullStateDictConfig
@@ -180,6 +181,31 @@ def fine_tune(args):
     )
 
     return trainer
+
+
+def base_model_inference(args):
+    eval_prompt = f"""Given a target sentence construct the underlying meaning representation of the input sentence as a single function with attributes and attribute values.
+       This function should describe the target string accurately and the function must be one of the following ['inform', 'request', 'give_opinion', 'confirm', 'verify_attribute', 'suggest', 'request_explanation', 'recommend', 'request_attribute'].
+       The attributes must be one of the following: ['name', 'exp_release_date', 'release_year', 'developer', 'esrb', 'rating', 'genres', 'player_perspective', 'has_multiplayer', 'platforms', 'available_on_steam', 'has_linux_release', 'has_mac_release', 'specifier']
+
+       ### Target sentence:
+       {args.get("target_sentence")}
+
+       ### Meaning representation:
+       """
+
+    # Re-init the tokenizer so it doesn't add padding or eos token
+    eval_tokenizer = AutoTokenizer.from_pretrained(
+        args.get("base_model_name"),
+        add_bos_token=True,
+    )
+    base_model = BaseModelLoader(args).model
+    model_input = eval_tokenizer(eval_prompt, return_tensors="pt").to("cuda")
+
+    base_model.eval()
+    with torch.no_grad():
+        print(
+            eval_tokenizer.decode(base_model.generate(**model_input, max_new_tokens=256)[0], skip_special_tokens=True))
 
 
 def inference(inference_args):
